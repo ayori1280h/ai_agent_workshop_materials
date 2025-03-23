@@ -1,39 +1,42 @@
-# LLM(Large Language Model)
-LLMはファインチューニングすることによって、テキスト分類や感情分析、情報抽出、文章要約、テキスト生成、質問応答といった、さまざまな自然言語処理タスクに適応可能となります。
-最近では、画像、音声、動画などのデータも出力可能になっています。
+
+# AIエージェント入門
+はじめに
+この資料は、AIエージェントの基本的な概念を理解するための入門書です。AIエージェントとは、人間の指示に基づいて、自律的にタスクを実行するソフトウェアのことです。この資料では、AIエージェントの実現に欠かせない要素技術であるLLM、RAG、CoT、そしてTool Callingについて、説明した後、MCPについてデモを交えて説明します。
 
 
-```mermaid
-graph TD
-    A[STEP 1<br>トークン化<br>] --> B[STEP 2<br>ベクトル化<br>];
-    B --> C[STEP 3<br>ニューラルネットワーク<br>];
-    C --> D[STEP 4<br>コンテキスト<br>文脈理解<br>];
-    D --> E[STEP 5<br>デコード<br>];
+## 1. LLM（Large Language Model：大規模言語モデル）とは？
 
-    A_desc[テキストデータを<br>最小データである<br>トークンへ分割]:::note;
-    B_desc[トークンを<br>数値へ変更し、<br>分類を行う]:::note;
-    C_desc[データの特徴を掴む]:::note;
-    D_desc[STEP3を経て<br>調整したデータをもとに、<br>文章内容の理解へ]:::note;
-    E_desc[出力用の<br>データへ変換し、<br>文章を出力]:::note;
+LLMは、大量のテキストデータを学習し、人間が書いた文章を理解したり、生成したりできるAIモデルです。
 
-    A_desc --> A;
-    B_desc --> B;
-    C_desc --> C;
-    D_desc --> D;
-    E_desc --> E;
-    classDef note fill:#f9f9f9,stroke:#bbb,stroke-width:1px,rx:5px,ry:5px;
+### LLMができること
 
-    style A fill:#e0f7fa,stroke:#333;
-    style B fill:#e0f7fa,stroke:#333;
-    style C fill:#e0f7fa,stroke:#333;
-    style D fill:#e0f7fa,stroke:#333;
-    style E fill:#e0f7fa,stroke:#333;
+*   **テキスト分類:** 文章をカテゴリー分けする（例：ニュース記事を「スポーツ」「経済」などに分類）
+*   **感情分析:** 文章から感情を読み取る（例：レビューがポジティブかネガティブかを判断）
+*   **情報抽出:** 文章から必要な情報を取り出す（例：ニュース記事から人名、日付、場所を抽出）
+*   **文章要約:** 長い文章を短くまとめる
+*   **テキスト生成:** 新しい文章を自動で作成する（例：ブログ記事、小説、詩など）
+*   **質問応答:** 質問に対して適切な回答を生成する
+*   **画像、音声、動画などの出力:** 最近では、テキストだけでなく、画像や音声などのデータも生成できるようになっています。
 
-```
+### LLMの仕組み
 
-# RAG（Retrieval-Augmented Generation）について
+LLMは、以下のステップで文章を理解し、生成します。
 
-## RAGの核心的なデータフロー
+1.  **トークン化:** 文章を意味を持つ最小単位（トークン）に分割します。（例：「私は猫が好きです。」→「私」「は」「猫」「が」「好き」「です」「。」）
+2.  **ベクトル化:** トークンを数値（ベクトル）に変換します。これにより、コンピュータが単語の意味や関係性を理解できるようになります。
+3.  **ニューラルネットワーク:** ベクトル化されたデータを使って、文章の特徴やパターンを学習します。
+4.  **文脈理解:** 学習した情報をもとに、文章全体の意味を理解します。
+5.  **デコード:** 理解した内容から、新しい文章を生成します。
+
+### LLMができないこと
+
+LLMは学習データに基づいて文章を生成するため、学習していない情報については、信憑性の低い情報（ハルシネーション）を生成してしまうことがあります。つまり、知ったかぶりをして、それらしい嘘をついてしまうことがあるのです。
+
+## 2. RAG（Retrieval-Augmented Generation）について
+
+RAGは、LLMが持つ知識だけでなく、外部のデータベースやWebサイトから情報を検索して、文章生成に利用する技術です。
+
+### RAGの核心的なデータフロー
 
 1. **事前準備（インデックス作成）**:
    - 文書コレクションをチャンク（断片）に分割
@@ -43,33 +46,31 @@ graph TD
 2. **実行フロー**:
    - ユーザークエリを同じ埋め込みモデルでベクトル化
    - ベクトルDBで類似度検索を実行し、関連性の高いコンテキストを取得
-   - **重要なポイント**: ユーザークエリと取得したコンテキストを組み合わせて拡張プロンプトを作成
+   - ユーザークエリと取得したコンテキストを組み合わせて拡張プロンプトを作成
    - この拡張プロンプトをLLMに入力し、最終回答を生成
 
 LLMは、この拡張された情報を元に回答を生成するため、単独で回答するよりも正確な情報を提供できるようになります。
 
 RAGの主な価値は、このようにクエリ時に関連する外部知識を動的に取得し、LLMの入力コンテキストを「拡張」することにあります。
 
-RAGの流れ
+**RAGの流れ**
 ```mermaid
-flowchart LR
-    subgraph "事前準備"
-        docs[文書コレクション] --> chunk[文書チャンク化]
-        chunk --> embed1[埋め込みベクトル生成]
-        embed1 --> vdb[(ベクトルDB)]
-    end
-    
+flowchart TD
     subgraph "実行フロー"
-        query[ユーザークエリ] --> embed2[クエリ埋め込み]
-        embed2 --> retrieval{類似度検索}
+        query[ユーザークエリ] --> retrieval{類似度検索}
         vdb --> retrieval
         retrieval --> context[関連コンテキスト]
         
         query --> merger{プロンプト生成}
         context --> merger
-        merger --> augmented[拡張プロンプト]
-        augmented --> llm[LLM処理]
+        merger --> llm[LLM処理]
         llm --> response[最終回答]
+    end
+
+    subgraph "事前準備"
+        docs[文書コレクション] --> chunk[文書チャンク化]
+        chunk --> embed1[埋め込みベクトル生成]
+        embed1 --> vdb[(ベクトルDB)]
     end
     
     style vdb fill:#bbf,stroke:#333,stroke-width:2px
@@ -78,24 +79,19 @@ flowchart LR
     style llm fill:#bfb,stroke:#333,stroke-width:2px
 ```
 
-## シンプルなRAGの欠点
+### RAGの欠点
 RAGシステムでは、検索段階においてLLMのように文脈に応じてベクトルを動的に補完する機構(self attention)は存在しません。埋め込みモデルが単語やフレーズの意味を完全に捉えられない場合や、多義語の扱いに課題がある場合に、関連性の低い情報が検索されることがあります。
 
 例として、「バンク」という単語を含む情報を検索し、その情報に基づいて文章を生成するケースを考えます。検索結果には、「銀行（financial bank）」と「土手（river bank）」の両方の意味の情報が含まれているとします。この時、RAGは文脈に応じて「バンク」の意味を適切に選択できない場合があります。例えば、金融に関する文章を生成する必要があるのに、土手に関する情報を参照してしまい、意味の通じない文章を生成してしまうことがあります。
 
+### GraphRAG（グラフベースRAG）
+文書間の関係をグラフ構造として表現し、従来のRAGの弱点である、文脈を考慮した情報検索を強化します。
 
-
-## GraphRAG（グラフベースRAG）
-
-特徴: <br>
-文書間の関係をグラフ構造として表現
-
-メリット:<br>
+**メリット**
 文書間の関連性や階層関係を明示的に扱える
 複雑な質問に対して関連情報をグラフ探索で取得可能
 エンティティ間の関係性を考慮した回答生成
 
-実装例: Metaphor社の「Memory Graph」、Neo4jとLLMの連携システムなど
 
 ```mermaid
 flowchart TD
@@ -132,68 +128,17 @@ flowchart TD
     style llm fill:#bfb,stroke:#333,stroke-width:2px
 ```
 
-# CoT(Chain of Thought)
-Chain of Thought（CoT、思考の連鎖）は、大規模言語モデル（LLM）や人工知能が複雑な問題を解決する際に、段階的な推論プロセスを明示的に示す手法です。この図は、そのプロセスを表しています：
+## 3. CoT(Chain of Thought)とは？
+CoTは、LLMが複雑な問題を解決する際に、段階的な推論プロセスを明示的に示す手法です。
 
-1. **問題・質問の提示**: まず解決すべき問題や回答すべき質問が提示されます
+**ポイント**
+- LLMに「考える」プロセスを促す概念
+- パターン認識ではなく、論理的な推論に基づいた回答を生成させる
+- LLMの能力を最大限に引き出し、より複雑な問題解決を可能にする
 
-2. **ステップ1: 初期理解**: 問題の基本的な理解と解釈を行います
+言い換え：CoTは、LLMが問題を解く過程を、まるで人間のように段階的に示すことで、より高度な問題解決を可能にするアプローチです。
 
-3. **ステップ2: 分解・分析**: 複雑な問題をより小さな部分問題に分解します
-
-4. **ステップ3: 中間推論**: 各部分問題に対して推論を行い、中間的な結論を導きます
-
-5. **ステップ4: 追加情報の考慮**: 関連する追加情報や制約条件を検討します
-
-6. **ステップ5: 関連知識の活用**: 背景知識や関連する概念を適用します
-
-7. **ステップ6: 統合と検証**: 中間結論を統合し、全体の整合性を検証します
-
-8. **最終的な回答/結論**: すべての思考ステップを経て最終的な回答を導き出します
-
-```mermaid
-flowchart TD
-    A[問題・質問の提示] --> B[ステップ1: 初期理解]
-    B --> C[ステップ2: 分解・分析]
-    C --> D[ステップ3: 中間推論]
-    D --> E[ステップ4: 追加情報の考慮]
-    E --> F[ステップ5: 関連知識の活用]
-    F --> G[ステップ6: 統合と検証]
-    G --> H[最終的な回答/結論]
-    
-    B -.-> I[明示的な思考過程]
-    C -.-> I
-    D -.-> I
-    E -.-> I
-    F -.-> I
-    G -.-> I
-    
-    classDef problem fill:#f9d5e5,stroke:#333,stroke-width:1px
-    classDef thinking fill:#d5e5f9,stroke:#333,stroke-width:1px
-    classDef answer fill:#d5f9e5,stroke:#333,stroke-width:1px
-    classDef explicit fill:#f9e5d5,stroke:#333,stroke-width:1px,stroke-dasharray: 5 5
-    
-    class A problem
-    class B,C,D,E,F,G thinking
-    class H answer
-    class I explicit
-```
-
-CoTの特徴は、これらの思考過程を「明示的に表現する」点にあります（図の破線で示された部分）。AIモデルが「どのように考えているか」を示すことで、以下の利点があります：
-
-- 複雑な推論を必要とする問題での精度向上
-- モデルの思考過程の透明性確保
-- 誤りの早期発見と修正の機会提供
-- 人間の自然な思考プロセスに近い形での問題解決
-
-CoTは特に算数、論理的推論、多段階の思考を要する問題解決において、単に結論だけを出力するよりも高い正確性を示すことが研究で明らかになっています。
-
-## CoTの概念
-
-CoTは、LLMに「考える」プロセスを促すための概念であり、その実現方法は多岐にわたります。
-重要なのは、LLMが単にパターン認識に基づいて回答を生成するのではなく、論理的な推論に基づいて回答を生成するように促すことです。
-CoTは、LLMの能力を最大限に引き出し、より複雑な問題解決を可能にするための重要なアプローチと言えます。
-
+### 実装方法
 
 **1. Zero-shot CoT**
 
@@ -238,31 +183,72 @@ CoTは、LLMの能力を最大限に引き出し、より複雑な問題解決�
     * **LLMの応答例:**「1日目は、東京駅から新幹線で大阪駅へ移動し、大阪城を観光します。夜は、道頓堀周辺のホテルに宿泊します。2日目は、通天閣を観光し、新幹線で東京駅へ戻ります。新幹線の料金は〇〇円、宿泊料金は△△円、観光と交通費は□□円で、合計で29000円です。」
     * この例では、LLMは複雑な旅行プラン作成タスクを複数のサブタスクに分解し、それぞれのサブタスクで必要な情報を収集し、それらを組み合わせて最終的な旅行プランを生成しています。この時内部で各サブタスクごとに内部で対話のような処理が行われていると考えられます。
 
+**各実装の比較**
+```mermaid
+flowchart TD
+    subgraph "Zero-shot CoT"
+        A1[タスク] --> A2["プロンプト: '段階的に考えて'"]
+        A2 --> A3[LLMが段階的思考プロセスを生成]
+        A3 --> A4[最終的な回答]
+    end
 
-# ThinkingモデルとFlashモデルについて
-最近の「Thinkingモデル」と「Flashモデル」は、基盤となるLLM自体は同じであることが多いですが、その入力処理と出力生成のフローに違いがあります。
+    subgraph "Few-shot CoT"
+        B1[タスク] --> B2[少数の例を含むプロンプト]
+        B2 --> B3[LLMが例から思考パターンを学習]
+        B3 --> B4[新しい入力に対して類似の思考プロセスを適用]
+        B4 --> B5[最終的な回答]
+    end
 
-**主な違い**
+    subgraph "タスク分解と段階的な内部対話"
+        C1[複雑なタスク] --> C2[複数のサブタスクに分解]
+        C2 --> C3[サブタスク1: 中間結果を生成]
+        C2 --> C4[サブタスク2: 中間結果を生成]
+        C2 --> C5[サブタスク3: 中間結果を生成]
+        C3 & C4 & C5 --> C6[中間結果を組み合わせ]
+        C6 --> C7[最終的な回答]
+    end
 
-* **思考プロセスの重視:**
-    * 「Thinkingモデル」は、より複雑な問題解決や推論に重点を置いており、その過程を重視します。
-    * CoT（Chain-of-Thought）のように、段階的な思考プロセスを内部で実行し、その過程を可視化したり、出力に含めたりすることが特徴です。
-    * これにより、人間がどのように考えているかに近い形で、より深い理解や洞察を得ることができます。
-* **処理速度と効率性:**
-    * 「Flashモデル」は、より高速な処理と効率性を重視します。
-    * 複雑な思考プロセスを省略したり、最適化したりすることで、迅速な応答や大量のデータ処理を可能にします。
-    * リアルタイムな応答や、大量の情報を処理するタスクに適しています。
-* **内部のやり取り:**
-    * 「Thinkingモデル」は、複数の内部的なやり取り（例えば、自己対話や反復的な推論）を行うことで、より深い思考を可能にします。
-    * 「Flashモデル」は、それらのプロセスを省略し、直接的な推論や応答に焦点を当てます。
+    style A1 fill:#f9d5e5,stroke:#333
+    style B1 fill:#eeeeee,stroke:#333
+    style C1 fill:#d5f9e5,stroke:#333
+    
+    style A2 fill:#f9d5e5,stroke:#333
+    style B2 fill:#eeeeee,stroke:#333
+    style C2 fill:#d5f9e5,stroke:#333
+    
+    style A3 fill:#f9d5e5,stroke:#333
+    style B3 fill:#eeeeee,stroke:#333
+    style C3 fill:#d5f9e5,stroke:#333
+    style C4 fill:#d5f9e5,stroke:#333
+    style C5 fill:#d5f9e5,stroke:#333
+    
+    style A4 fill:#f9d5e5,stroke:#333
+    style B4 fill:#eeeeee,stroke:#333
+    style C6 fill:#d5f9e5,stroke:#333
+    
+    style B5 fill:#eeeeee,stroke:#333
+    style C7 fill:#d5f9e5,stroke:#333
+```
 
-**具体例**
+### ThinkingモデルとFlashモデル
 
-* Googleの「Gemini 2.0 Flash Thinking」は、「Thinkingモデル」の代表的な例です。
-    * このモデルは、思考プロセスを「Thoughts」として可視化し、人間がAIの思考過程を理解できるように設計されています。
+「Thinkingモデル」と「Flashモデル」は、どちらもLLMを基盤としていますが、重視する点が異なります。
+
+**主な違い:**
+
+*   **Thinkingモデル：**
+    *   複雑な問題解決・推論に重点。
+    *   CoTのように、段階的な思考プロセスを重視し、可視化する。
+*   **Flashモデル：**
+    *   高速な処理・効率性に重点。
+    *   思考プロセスを省略し、迅速な応答を可能にする。
+
+**例：**
+
+*   Googleの「Gemini 2.0 Flash Thinking」は、思考プロセスを可視化するThinkingモデルの一例。
 
 
-# ReAct(Reasoning and Acting)
+## 4. ReAct(Reasoning and Acting)
 ReActは大規模言語モデル（LLM）やAIシステムが問題解決を行う際の効果的な手法で、以下のステップで構成されています：
 1. **タスク/問題の提示**: 解決すべき問題や達成すべきタスクが提示されます
 
@@ -304,7 +290,7 @@ flowchart TD
     class E feedback
 ```
 
-# Tool Calling
+## 5. Tool Calling
 
 Tool Calling（ツール呼び出し）は、大規模言語モデル（LLM）が外部のツールやAPIを呼び出し、その結果を自身の応答に組み込む機能です。これにより、LLMはより複雑なタスクを実行したり、最新の情報に基づいた回答を提供したりできるようになります。
 
@@ -369,30 +355,31 @@ sequenceDiagram
     Client->>User: 回答を表示
 ```
 
-# MCP(Model Context Protocol)<br>
-The Model Context Protocol (MCP) is designed to solve external data access for modern AI assistants.
+## 6. MCP(Model Context Protocol)
+Model Context Protocol (MCP)は、最新のAIアシスタントが外部データにアクセスする問題を解決するために開発されました。
 
-The Model Context Protocol (MCP) is designed to solve a crucial problem for modern AI assistants: accessing external data. While powerful, AI models are limited by the knowledge they were trained on. They need a way to tap into real-time information from various sources like databases, code repositories, cloud storage, and other applications to provide truly useful and context-aware responses. MCP provides that bridge.
+現代のAIアシスタントが直面する重要な課題、それは外部データへのアクセスです。AIモデルはどれほど優れていても、学習したデータの範囲内でしか知識を持ち合わせていません。本当に役立つ、状況に応じた回答を提供するには、データベースやコードリポジトリ、クラウドストレージ、その他のアプリケーションなど、さまざまな情報源からリアルタイムデータを取得できる仕組みが必要です。MCPはそのための架け橋となるのです。
 
+**MCPの流れ** 
 
 ```mermaid
 graph TD
-    subgraph "Application Host Process"
-        Host --> Client1[Client 1];
-        Host --> Client2[Client 2];
-        Host --> Client3[Client 3];
+    subgraph "アプリケーションホストプロセス"
+        Host --> Client1[クライアント1];
+        Host --> Client2[クライアント2];
+        Host --> Client3[クライアント3];
     end
     
-    subgraph "Local machine"
-        Client1 --> Server1[Server 1<br>Files & Git];
-        Client2 --> Server2[Server 2<br>Database];
-        Server1 --> ResourceA[Local<br>Resource A];
-        Server2 --> ResourceB[Local<br>Resource B];
+    subgraph "ローカルマシン"
+        Client1 --> Server1[サーバー1<br>ファイル＆Git];
+        Client2 --> Server2[サーバー2<br>データベース];
+        Server1 --> ResourceA[ローカル<br>リソースA];
+        Server2 --> ResourceB[ローカル<br>リソースB];
     end
     
-    subgraph Internet
-        Client3 --> Server3[Server 3<br>External APIs];
-        Server3 --> ResourceC[Remote<br>Resource C];
+    subgraph インターネット
+        Client3 --> Server3[サーバー3<br>外部API];
+        Server3 --> ResourceC[リモート<br>リソースC];
     end
     
     style Host fill:#f0f0f0,stroke:#333,stroke-width:2px;
@@ -406,20 +393,18 @@ graph TD
     style ResourceB fill:#ffe6e6,stroke:#333;
     style ResourceC fill:#ffe6e6,stroke:#333;
 ```
-Think of it like this: an AI is a brilliant student, but it's stuck in a library with only a limited set of books. MCP is like giving that student a library card and internet access, allowing them to explore and learn from a vast universe of information beyond the initial set of books.
+たとえるなら、AIは優秀な学生のようなものですが、限られた蔵書しかない図書館に閉じ込められている状態です。MCPは、その学生に図書館カードとインターネット接続を与えるようなもので、最初に与えられた本の範囲を超えて、広大な情報の海を探索し学べるようにします。
 
 
 # 余談（ローカルLLM）
-SLM（小規模言語モデル）の能力がLLM（大規模言語モデル）並みに上昇しているという話
-そこそこのPC（20-30万）でクローズドなエージェントシステムが実現できる。
+SLM（小規模言語モデル）の能力がLLM（大規模言語モデル）並みに上昇しているという話。そこそこのPC（20-30万）でクローズドなエージェントシステムが実現できる。
 https://www.mag2.com/p/news/639442
 
 
 # 余談（科学者向けAI AI co-scientist）
-![image](assets/image/co_scientist.png)
 生物、医薬科学者向けのサービス。仮説、検証を繰り返し、実証実験を行ってくれる。
 https://gigazine.net/news/20250317-googles-ai-cracked-superbug-problem/
-
+![image](assets/image/co_scientist.png)
 
 
 
